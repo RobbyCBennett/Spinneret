@@ -53,11 +53,17 @@ obj: object
 
 The WebSocket of the client. The `message` property is a full message as a Buffer. As opposed to an HTTP body, the type is unknown, so you must manually call JSON.parse on the message if it is JSON.
 
-Properties/functions added by Spinneret
+Functions added by Spinneret
 ```ts
-encode:  function(data)
-send:    function(data, encoded=false)
-message: Buffer
+encode: function(data)
+send:   function(data, encoded=false)
+```
+
+Properties added by Spinneret
+```ts
+error:    Exception || null // non-null if the event-handler is 'error'
+hadError: boolean || null   // non-null if the event-handler is 'close'
+message:  Buffer || null    // non-null if the event-handler is 'data'
 ```
 
 Parameters of functions above

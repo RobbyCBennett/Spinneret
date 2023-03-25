@@ -475,8 +475,6 @@ module.exports = class Server
 	// WebSocket: Decode the message and store in client.message
 	#decodeWsMessage(socket, buffer)
 	{
-		socket.message = null;
-
 		// Metadata: Use byte 0 to get the kind of buffer
 		const byte0 = buffer.readUInt8(0);
 		const opCode = byte0 & 0xf;
@@ -598,27 +596,38 @@ module.exports = class Server
 		// Event handler: WebSocket.close
 		if (this.#wsOnClose)
 			socket.on('close', (hadError) => {
+				socket.error    = null;
 				socket.hadError = hadError;
+				socket.message  = null;
 				this.#wsOnClose(socket);
 			});
 
 		// Event handler: WebSocket.error
 		if (this.#wsOnError)
 			socket.on('error', (error) => {
-				socket.error = error;
+				socket.error    = error;
+				socket.hadError = null;
+				socket.message  = null;
 				this.#wsOnError(socket);
 			});
 
 		// Event handler: WebSocket.message
 		if (this.#wsOnMessage)
 			socket.on('data', (buffer) => {
+				socket.error    = null;
+				socket.hadError = null;
+				socket.message  = null;
 				this.#decodeWsMessage(socket, buffer);
 				this.#wsOnMessage(socket);
 			});
 
 		// Event handler: WebSocket.open
-		if (this.#wsOnOpen)
+		if (this.#wsOnOpen) {
+				socket.error    = null;
+				socket.hadError = null;
+				socket.message  = null;
 			this.#wsOnOpen(socket);
+		}
 	}
 
 	// WebSocket: For the given event string, set the handler function
