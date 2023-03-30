@@ -205,7 +205,6 @@ module.exports = class Server
 	// File serving: if the path exists, serve the file
 	#serveFile(req, res)
 	{
-
 		// If there's no file extension, then add index.html
 		let file;
 		if (this.#index && !/\.\w+/.test(req.url))
@@ -218,16 +217,22 @@ module.exports = class Server
 			if (this.#cacheEnabled) {
 				// Cached
 				if (this.#cache.has(file)) {
+					if (/\.svg$/.test(file))
+						res.setHeader('content-type', 'image/svg+xml');
 					res.end(this.#cache.get(file));
 				}
 				// Not cached yet
 				else {
 					const content = fs.readFileSync(file);
 					this.#cache.set(file, content);
+					if (/\.svg$/.test(file))
+						res.setHeader('content-type', 'image/svg+xml');
 					res.end(content);
 				}
 			}
 			else {
+				if (/\.svg$/.test(file))
+					res.setHeader('content-type', 'image/svg+xml');
 				res.end(fs.readFileSync(file));
 			}
 			return true;
