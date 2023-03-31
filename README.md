@@ -14,7 +14,6 @@ Shell
 ```sh
 cd MY_EXISTING_REPO_HERE
 git submodule add git@github.com:RobbyCBennett/spinneret.git
-git submodule init
 ```
 
 JavaScript
