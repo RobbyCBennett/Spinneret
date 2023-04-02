@@ -776,17 +776,27 @@ module.exports = class Server
 			// Middleware: Developer-provided
 			if (this.#middleware.length) {
 				for (const group of this.#middleware) {
-					// async
+					// Stop if a response was ended
+					if (res.finished)
+						break;
+
+					// If group is async
 					if (!group.sync) {
+						// Call all async functions together
 						const promises = [];
 						for (const mid of group.functions)
 							promises.push(mid(req, res));
 						await Promise.all(promises);
 					}
-					// sync
+					// If group is sync
 					else {
-						for (const mid of group.functions)
+						// Call each sync function
+						for (const mid of group.functions) {
 							mid(req, res);
+							// Stop if a response was ended
+							if (res.finished)
+								break;
+						}
 					}
 				}
 			}

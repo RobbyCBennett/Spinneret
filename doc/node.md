@@ -25,6 +25,7 @@ Notable built-in properties/functions
 ```ts
 end:        function(data = null)
 setHeader:  function(name, value)
+finished:   boolean
 statusCode: number
 ```
 
