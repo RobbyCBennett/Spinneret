@@ -155,6 +155,10 @@ module.exports = class Server
 			this.statusCode = 400;
 			this.end();
 		}
+		res.endUnauthorized = function() {
+			this.statusCode = 401;
+			this.end();
+		}
 		res.endNotFound = function() {
 			this.statusCode = 404
 			this.end();

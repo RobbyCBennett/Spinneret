@@ -39,6 +39,7 @@ Functions added by Spinneret middleware `server.midResEnd`
 ```ts
 endJson:          function(obj)
 endBadRequest:    function()
+endUnauthorized:  function()
 endNotFound:      function()
 endInternalError: function()
 ```

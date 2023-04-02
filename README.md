@@ -41,6 +41,7 @@ const Server = require('./spinneret/src/server')
 		* Functions: Shortcuts to common responses:
 			* JSON
 			* Bad request
+			* Unauthorized
 			* Not found
 			* Internal server error
 	* WebSocket Client
