@@ -83,7 +83,7 @@ const Server = require('./spinneret/src/server')
 		* Built-in Optional Middleware for File Serving
 			* Response
 				* Allow popular Content-Type bodies to be accepted properly (SVG)
-				* Make the Content-Security-Policy strict to help prevent [cross-site scripting attacks](doc/server.md#middleware-functions-provided-for-file-handling)
+				* Make the Content-Security-Policy strict to help prevent [cross-site attacks](doc/server.md#middleware-functions-provided-for-file-handling)
 * WebSocket: Receive and send messages
 	* Event handling functions using the same terms as the Web API of frontend/browsers (close, error, message, and open)
 	* Automatically decode/encode messages
