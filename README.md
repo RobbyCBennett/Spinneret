@@ -5,6 +5,7 @@ Zero-dependency web framework for Node.js
 
 * Simple API
 * Efficient asynchronous middleware
+* Separate middleware for API requests & file requests
 * One readable file for each module
 * Extensible as Node.js
 * Fast startup & responses
@@ -58,27 +59,31 @@ const Server = require('./spinneret/src/server')
 		* Redirection to HTTPS
 		* Specify the public directory, index.html, or 404.html
 		* Cannot serve backend directory or its ancestors for security
-	* API Requests
+	* API Handling
 		* Redirection to HTTPS
 		* URL path variables using any delimiters, where the default looks like `/notes/{note_id}`
-		* Synchronous or asynchronous middleware
+		* Synchronous or asynchronous middleware for API/files
 		* Skip reading the file system if API path prefixes are set
 	* Middleware
 		* Call groups of asynchronous middleware for fast responses
 		* Call groups of synchronous middleware if the order matters
-		* Provided Required Middleware
+		* Built-in Required Middleware for All
 			* Request
 				* Remove trailing slash from `req.url`
 				* Move URL ?parameters to `req.params` string
-		* Provided Optional Middleware
+		* Built-in Optional Middleware for API Handling
 			* Request
 				* Move URL variables in path to `req.vars` object with parsed values
 				* Move URL parameters after question mark ? to `req.params` object with parsed values
 				* Move JSON body to parsed `req.body` object with parsed values
 				* Move other body to `req.body` buffer
 			* Response
-				* Set default values: status code, content-type header, & content-security-policy header.
-				* Add useful functions to end the response for JSON, bad requests, not found, and internal server errors.
+				* Set default values for status code and content-type header
+				* Add useful functions to end the response for JSON, bad requests, not found, .etc
+		* Built-in Optional Middleware for File Serving
+			* Response
+				* Allow popular content-type bodies to be accepted properly (SVG)
+				* Make the content-security-policy strict to help prevent cross-site scripting attacks
 * WebSocket: Receive and send messages
 	* Event handling functions using the same terms as the Web API of frontend/browsers (close, error, message, and open)
 	* Automatically decode/encode messages

@@ -51,7 +51,7 @@ const Server  = require('./src/server');
 const env    = new Env();
 const server = new Server();
 
-server.midAsync(
+server.midApiAsync(
 	server.midReqBodyJson,
 	server.midReqBodyOther,
 	server.midReqUrlParams,
@@ -145,12 +145,23 @@ const Server = require('./spinneret/src/server');
 
 const server = new Server();
 
+server.enableCache();
+
+// Optional
+server.midFileAsync(
+	server.midFileResContentSecurityPolicy,
+	server.midFileResContentType,
+);
+
 server.files({
 	cache:    false,
 	dir:      'public',
 	index:    'index.html',
 	notFound: '404.html',
 });
+
+// Optional
+server.enableCache();
 
 server.listen({
 	port: 8080,
@@ -235,21 +246,21 @@ server.listen({
 });
 ```
 
-## Middleware for API Requests
+## Middleware
 
-Before API request handlers are called, call middleware functions. These can be used to parse requests, authenticate users, authorize requests, prepare the response, add useful properties/functions to requests/responses, and more.
+Before API request handlers are called or files are served, call middleware functions. These can be used to parse requests, authenticate users, authorize requests, prepare the response, add useful properties/functions to requests/responses, add useful headers, and more.
 
-`midAsync` parameters
+`midApiAsync` parameters
 ```ts
-server.midAsync(...fn)
+server.midApiAsync(...fn)
 
 fn: function(req, res)
 ```
 
-`midAsync` partial examples
+`midApiAsync` partial examples
 ```js
-// All of the built-in middleware, which all works asynchronously
-server.midAsync(
+// All of the built-in API middleware, which all works asynchronously
+server.midApiAsync(
 	server.midReqBodyJson,
 	server.midReqBodyOther,
 	server.midReqUrlParams,
@@ -259,29 +270,75 @@ server.midAsync(
 ```
 ```js
 // Step 1: Call 4 functions asynchronously
-server.midAsync(
+server.midApiAsync(
 	custom_mid_1_c,
 	custom_mid_1_d,
 	custom_mid_1_a,
 	custom_mid_1_b,
 );
 // Step 2: Call the next function which needed to wait for any of the previous 4
-server.midAsync(
+server.midApiAsync(
 	custom_mid_2,
 );
 ```
 
-`midSync` parameters
+`midApiSync` parameters
 ```ts
-server.midSync(...fn)
+server.midApiSync(...fn)
 
 fn: function(req, res)
 ```
 
-`midSync` partial example
+`midApiSync` partial example
 ```js
 // Steps 1-3
-server.midSync(
+server.midApiSync(
+	custom_mid_1,
+	custom_mid_2,
+	custom_mid_3,
+);
+```
+
+`midFileAsync` parameters
+```ts
+server.midFileAsync(...fn)
+
+fn: function(req, res)
+```
+
+`midFileAsync` partial examples
+```js
+// All of the built-in file middleware, which all works asynchronously
+server.midFileAsync(
+	server.midFileResContentType,
+	server.midFileResContentSecurityPolicy,
+);
+```
+```js
+// Step 1: Call 4 functions asynchronously
+server.midFileAsync(
+	custom_mid_1_c,
+	custom_mid_1_d,
+	custom_mid_1_a,
+	custom_mid_1_b,
+);
+// Step 2: Call the next function which needed to wait for any of the previous 4
+server.midFileAsync(
+	custom_mid_2,
+);
+```
+
+`midFileSync` parameters
+```ts
+server.midFileSync(...fn)
+
+fn: function(req, res)
+```
+
+`midFileSync` partial example
+```js
+// Steps 1-3
+server.midFileSync(
 	custom_mid_1,
 	custom_mid_2,
 	custom_mid_3,
@@ -308,12 +365,11 @@ server.midSync(
 
 * Set the defaults of the following values of a response
 	* Status code: 201 if POST request, otherwise 200
-	* Header: content-type: text/plain
-	* Header: content-security-policy: default-src 'self';
+	* Header: `Content-Type: text/plain`
 
 `Server.midResEnd`
 
-* Add the following methods as shortcuts for a response
+* Add the following methods, which are as shortcuts for the code listed below each
 ```js
 res.endJson(obj);
 
@@ -323,6 +379,12 @@ req.end(JSON.stringify(obj));
 res.endBadRequest(obj);
 
 res.statusCode = 400;
+res.end();
+```
+```js
+res.endUnauthorized(obj);
+
+res.statusCode = 401;
 res.end();
 ```
 ```js
@@ -337,6 +399,18 @@ res.endInternalError(obj);
 res.statusCode = 500;
 res.end();
 ```
+
+## Middleware Functions Provided for File Handling
+
+`Server.midFileResContentSecurityPolicy`
+
+* Disable inline scripts to prevent cross-site scripting attacks. Both inline CSS and inline JS are disabled.
+* Header: `Content-Security-Policy: default-src 'self'`
+
+`Server.midFileResContentType`
+
+* Set the content-type for popular files so that they render properly.
+* Header for SVG files: `Content-Type: image/svg+xml`
 
 
 ## WebSocket Event Handlers

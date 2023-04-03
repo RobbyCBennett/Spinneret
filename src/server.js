@@ -30,7 +30,8 @@ module.exports = class Server
 	#cacheEnabled;
 
 	// Middleware
-	#middleware;
+	#middlewareApi;
+	#middlewareFile;
 
 	// WebSocket
 	#ws;
@@ -56,18 +57,50 @@ module.exports = class Server
 		this.#cacheEnabled = false;
 
 		// Middleware
-		this.#middleware = [];
+		this.#middlewareApi  = [];
+		this.#middlewareFile = [];
 
 		// WebSocket
 		this.#ws = false;
 
 		// Public methods which use this server object
-		this.midReqBodyOther = this.midReqBodyOther.bind(this);
+		this.midApiReqBodyOther = this.midApiReqBodyOther.bind(this);
 	}
 
+	//////////////////////
+	// Middleware Setup //
+	//////////////////////
 
-	// Middleware: Receive body and parse as JSON
-	async midReqBodyJson(req, res)
+	// Remember the functions to asynchronously call together before API handlers
+	midApiAsync(...functions)
+	{
+		this.#midPush(this.#middlewareApi, false, functions);
+	}
+
+	// Remember the functions to synchronously call before API handlers
+	midApiSync(...functions)
+	{
+		this.#midPush(this.#middlewareApi, true, functions);
+	}
+
+	// Remember the functions to asynchronously call together before serving files
+	midFileAsync(...functions)
+	{
+		this.#midPush(this.#middlewareFile, false, functions);
+	}
+
+	// Remember the functions to synchronously call before serving files
+	midFileSync(...functions)
+	{
+		this.#midPush(this.#middlewareFile, true, functions);
+	}
+
+	////////////////////
+	// API Middleware //
+	////////////////////
+
+	// Receive body and parse as JSON
+	async midApiReqBodyJson(req, res)
 	{
 		// Skip if content type is not this type
 		if (req.headers['content-type'] != 'application/json')
@@ -92,8 +125,8 @@ module.exports = class Server
 		});
 	}
 
-	// Middleware: Receive body as file
-	async midReqBodyOther(req, res)
+	// API Middleware: Receive body as file
+	async midApiReqBodyOther(req, res)
 	{
 		// Skip if content type is a used internal middleware type (currently only json)
 		if (this.#types.has(req.headers['content-type']))
@@ -117,8 +150,8 @@ module.exports = class Server
 		});
 	}
 
-	// Middleware: Parse URL parameters
-	async midReqUrlParams(req, res)
+	// API Middleware: Parse URL parameters
+	async midApiReqUrlParams(req, res)
 	{
 		// Require the module to parse values
 		if (!parse)
@@ -133,19 +166,16 @@ module.exports = class Server
 			req.params[key] = parse.stringToValue(value);
 	}
 
-	// Middleware: Setup response
-	async midResDefaults(req, res)
+	// API Middleware: Setup response
+	async midApiResDefaults(req, res)
 	{
 		// Default content type & status code
 		res.statusCode = (req.method == 'POST') ? 201 : 200;
 		res.setHeader('content-type', 'text/plain');
-
-		// Disable inline js/css & requests to other domains
-		res.setHeader('content-security-policy', "default-src 'self';");
 	}
 
-	// Middleware: Add end functions for response
-	async midResEnd(req, res)
+	// API Middleware: Add end functions for response
+	async midApiResEnd(req, res)
 	{
 		res.endJson = function(obj) {
 			this.end(JSON.stringify(obj));
@@ -169,85 +199,87 @@ module.exports = class Server
 		}
 	}
 
-	// Middleware setup: Add to file types required by middleware
+	/////////////////////
+	// File Middleware //
+	/////////////////////
+
+	// Allow popular content-type bodies to be accepted properly
+	async midFileResContentType(req, res)
+	{
+		// Allow SVG files to render on front-end
+		if (/\.svg$/.test(req.url))
+			res.setHeader('content-type', 'image/svg+xml');
+	}
+
+	// Set the content-security-policy to be strict by default
+	async midFileResContentSecurityPolicy(req, res)
+	{
+		// Disable inline scripts to help prevent cross-site scripting attacks
+		res.setHeader('content-security-policy', "default-src 'self';");
+	}
+
+	///////////////////////////////////////
+	// (Internal Helpers for Middleware) //
+	///////////////////////////////////////
+
+	// If certain middleware is used, add file types to the set of allowed types
 	#implicitlyAddTypes(functions)
 	{
 		for (const fn of functions) {
 			switch (fn) {
-				case this.midReqBodyJson:
+				case this.midApiReqBodyJson:
 					this.#types.add('application/json')
 					break;
 			}
 		}
 	}
 
-	// Middleware setup: Push to array of developer-provided middleware
-	#midPush(sync, functions)
+	// Push to array of middleware
+	#midPush(array, sync, functions)
 	{
 		if (!functions.length)
 			return;
-		this.#middleware.push({
+		array.push({
 			sync:      sync,
 			functions: functions,
 		});
 		this.#implicitlyAddTypes(functions);
 	}
 
-	// Middleware setup: Asynchronously call all given functions together
-	midAsync(...functions)
+	// Call all middleware in the array
+	async #midCall(req, res, array)
 	{
-		this.#midPush(false, functions);
-	}
+		for (const group of array) {
+			// Stop if a response was ended
+			if (res.finished)
+				break;
 
-	// Middleware setup: Synchronously call each given function
-	midSync(...functions)
-	{
-		this.#midPush(true, functions);
-	}
-
-
-	// File serving: if the path exists, serve the file
-	#serveFile(req, res)
-	{
-		// If there's no file extension, then add index.html
-		let file;
-		if (this.#index && !/\.\w+/.test(req.url))
-			file = path.join(this.#dir, req.url, this.#index);
-		else
-			file = path.join(this.#dir, req.url);
-
-		// Response: file found from cache/filesystem
-		try {
-			if (this.#cacheEnabled) {
-				// Cached
-				if (this.#cache.has(file)) {
-					if (/\.svg$/.test(file))
-						res.setHeader('content-type', 'image/svg+xml');
-					res.end(this.#cache.get(file));
-				}
-				// Not cached yet
-				else {
-					const content = fs.readFileSync(file);
-					this.#cache.set(file, content);
-					if (/\.svg$/.test(file))
-						res.setHeader('content-type', 'image/svg+xml');
-					res.end(content);
-				}
+			// If group is async
+			if (!group.sync) {
+				// Call all async functions together
+				const promises = [];
+				for (const mid of group.functions)
+					promises.push(mid(req, res));
+				await Promise.all(promises);
 			}
+			// If group is sync
 			else {
-				if (/\.svg$/.test(file))
-					res.setHeader('content-type', 'image/svg+xml');
-				res.end(fs.readFileSync(file));
+				// Call each sync function
+				for (const mid of group.functions) {
+					mid(req, res);
+					// Stop if a response was ended
+					if (res.finished)
+						break;
+				}
 			}
-			return true;
-		}
-		// File not found in filesystem
-		catch (err) {
-			return false;
 		}
 	}
 
-	// File serving setup: Get the directory, index file, and error 404 file
+	//////////////////
+	// File Serving //
+	//////////////////
+
+	// Enable file serving if the directory is valid
 	files({
 		cache    = false,
 		dir      = 'public',
@@ -282,21 +314,25 @@ module.exports = class Server
 		this.#notFound = (typeof(notFound) === 'string') ? path.join(dir, notFound) : null;
 	}
 
+	// Clear the file cache
 	cacheClear()
 	{
 		this.#cache.clear();
 	}
 
+	// Disable the file cache (does not clear the cache)
 	cacheDisable()
 	{
 		this.#cacheEnabled = false;
 	}
 
+	// Enable the file cache (does not add files to the cache)
 	cacheEnable()
 	{
 		this.#cacheEnabled = true;
 	}
 
+	// Refresh the file cache of files served since this server started listening
 	cacheRefresh()
 	{
 		for (const file of this.#cache.keys()) {
@@ -308,49 +344,97 @@ module.exports = class Server
 		}
 	}
 
+	////////////////////////////////////////
+	// (Internal Helpers for File Serving) //
+	////////////////////////////////////////
 
-	// API: Get route handler from URL
-	#getRoute(req)
+	// If the path exists, then serve the file
+	#serveFile(req, res, file)
 	{
-		let map = this.#routes;
-
-		// Static URL
-		if (!this.#urlVar) {
-			if (!map.has(req.url))
-				return null;
-			map = map.get(req.url);
-		}
-
-		// Dynamic URL
-		else {
-			for (let urlPart of req.url.split('/')) {
-				if (!urlPart)
-					continue;
-
-				// Get the key of the variable from the parent map
-				const varKey = map.var;
-				if (varKey) {
-					// Add the variable to the request
-					if (!req.vars)
-						req.vars = {};
-					req.vars[varKey] = parse.stringToValue(urlPart);
-
-					// Change the URL part to the inner part of the delimiters
-					urlPart = varKey;
+		// Response: file content from cache/filesystem
+		try {
+			// Try to use the cache
+			if (this.#cacheEnabled) {
+				// The file is cached
+				if (this.#cache.has(file)) {
+					// Serve content from cache
+					if (this.#middlewareFile.length)
+						this.#midCall(req, res, this.#middlewareFile);
+					res.end(this.#cache.get(file));
 				}
+				// The file is not cached yet
+				else {
+					// Get content from filesystem and add to cache
+					const content = fs.readFileSync(file);
+					this.#cache.set(file, content);
 
-				// Find URL urlPart of routes
-				if (!map.has(urlPart))
-					return null;
-				map = map.get(urlPart);
+					// Serve content
+					if (this.#middlewareFile.length)
+						this.#midCall(req, res, this.#middlewareFile);
+					res.end(content);
+				}
 			}
+			// Don't try to use the cache
+			else {
+				// Get content from filesystem and serve it
+				const content = fs.readFileSync(file);
+				if (this.#middlewareFile.length)
+					this.#midCall(req, res, this.#middlewareFile);
+				res.end(content);
+			}
+			return true;
 		}
-
-		// Get handler for method
-		return map[req.method];
+		// File not found in filesystem
+		catch (err) {
+			return false;
+		}
 	}
 
-	// API: Set route handler for URL
+	//////////////////
+	// API Handling //
+	//////////////////
+
+	// Given a method string, URL string, and handler function
+	api(method, url, fn)
+	{
+		this.#setRoute(method, url, fn);
+	}
+
+	// Shorthand for api() for common method delete
+	delete(url, fn)
+	{
+		this.api('DELETE', url, fn);
+	}
+
+	// Shorthand for api() for common method get
+	get(url, fn)
+	{
+		this.api('GET', url, fn);
+	}
+
+	// Shorthand for api() for common method patch
+	patch(url, fn)
+	{
+		this.api('PATCH', url, fn);
+	}
+
+	// Shorthand for api() for common method post
+	post(url, fn)
+	{
+		this.api('POST', url, fn);
+	}
+
+	// Shorthand for api() for common method put
+	put(url, fn)
+	{
+		this.api('PUT', url, fn);
+	}
+
+	/////////////////////////////////////////
+	// (Internal Helpers for API Handling) //
+	/////////////////////////////////////////
+
+	// Set route handler for a URL
 	#setRoute(method, url, fn)
 	{
 		let map = this.#routes;
@@ -391,7 +475,48 @@ module.exports = class Server
 		map[method] = fn;
 	}
 
-	// API: Given strings, create a regular expression to find API URLs
+	// Get route handler from a URL
+	#getRoute(req)
+	{
+		let map = this.#routes;
+
+		// Static URL
+		if (!this.#urlVar) {
+			if (!map.has(req.url))
+				return null;
+			map = map.get(req.url);
+		}
+
+		// Dynamic URL
+		else {
+			for (let urlPart of req.url.split('/')) {
+				if (!urlPart)
+					continue;
+
+				// Get the key of the variable from the parent map
+				const varKey = map.var;
+				if (varKey) {
+					// Add the variable to the request
+					if (!req.vars)
+						req.vars = {};
+					req.vars[varKey] = parse.stringToValue(urlPart);
+
+					// Change the URL part to the inner part of the delimiters
+					urlPart = varKey;
+				}
+
+				// Find URL urlPart of routes
+				if (!map.has(urlPart))
+					return null;
+				map = map.get(urlPart);
+			}
+		}
+
+		// Get handler for method
+		return map[req.method];
+	}
+
+	// Given strings, create a regular expression to find API URLs
 	#apiUrlPrefixes(prefixes)
 	{
 		// Already a regular expression
@@ -417,7 +542,7 @@ module.exports = class Server
 		return new RegExp(expressions);
 	}
 
-	// API: Configure or disable URL variables
+	// Given strings, create a regular expression to for URL variables
 	#apiUrlVarDelimiters(delimiters)
 	{
 		let regExp;
@@ -438,50 +563,37 @@ module.exports = class Server
 		return regExp;
 	}
 
-	// API: Given a method string, URL string, and handler function
-	api(method, url, fn)
+	////////////////
+	// WebSockets //
+	////////////////
+
+	// For the given event string, set the handler function
+	ws(event, fn)
 	{
-		this.#setRoute(method, url, fn);
+		this.#ws = true;
+		if (event === 'close')
+			this.#wsOnClose = fn;
+		else if (event === 'error')
+			this.#wsOnError = fn;
+		else if (event === 'message')
+			this.#wsOnMessage = fn;
+		else if (event === 'open')
+			this.#wsOnOpen = fn;
+		else
+			throw 'Expected the first parameter to be close, error, message, or open';
 	}
 
-	// API: Shorthand for api() for common method delete
-	delete(url, fn)
-	{
-		this.api('DELETE', url, fn);
-	}
+	///////////////////////////////////////
+	// (Internal Helpers for WebSockets) //
+	///////////////////////////////////////
 
-	// API: Shorthand for api() for common method get
-	get(url, fn)
-	{
-		this.api('GET', url, fn);
-	}
-
-	// API: Shorthand for api() for common method patch
-	patch(url, fn)
-	{
-		this.api('PATCH', url, fn);
-	}
-
-	// API: Shorthand for api() for common method post
-	post(url, fn)
-	{
-		this.api('POST', url, fn);
-	}
-
-	// API: Shorthand for api() for common method put
-	put(url, fn)
-	{
-		this.api('PUT', url, fn);
-	}
-
-
-	// WebSocket: Hash the key
+	// Hash the key
 	#hashWsKey(key)
 	{
 		return crypto.createHash('sha1').update(key + WS_GUID).digest('base64');
 	}
 
-	// WebSocket: Decode the message and store in client.message
+	// Decode the message and store in client.message
 	#decodeWsMessage(socket, buffer)
 	{
 		// Metadata: Use byte 0 to get the kind of buffer
@@ -541,7 +653,7 @@ module.exports = class Server
 		}
 	}
 
-	// WebSocket: Encode a string to send
+	// Encode a string to send
 	#encodeWsMessage(data)
 	{
 		// Message: Stringify buffers
@@ -575,7 +687,7 @@ module.exports = class Server
 		return buffer;
 	}
 
-	// WebSocket: Add metadata and send the message
+	// Add metadata and send the message
 	#sendWsMessage(data, encoded=false)
 	{
 		if (encoded)
@@ -584,7 +696,7 @@ module.exports = class Server
 			this.write(this.encode(data));
 	}
 
-	// WebSocket: Upgrade HTTP to WebSocket
+	// Upgrade HTTP to WebSocket
 	#upgradeToWs(req, socket) {
 		// Hash the WebSocket key
 		const hash = this.#hashWsKey(req.headers['sec-websocket-key']);
@@ -639,73 +751,9 @@ module.exports = class Server
 		}
 	}
 
-	// WebSocket: For the given event string, set the handler function
-	ws(event, fn)
-	{
-		this.#ws = true;
-		if (event === 'close')
-			this.#wsOnClose = fn;
-		else if (event === 'error')
-			this.#wsOnError = fn;
-		else if (event === 'message')
-			this.#wsOnMessage = fn;
-		else if (event === 'open')
-			this.#wsOnOpen = fn;
-		else
-			throw 'Expected the first parameter to be close, error, message, or open';
-	}
-
-	// Handler: Redirect unencrypted requests to HTTPS
-	#handleUnencryptedHttp(req, res)
-	{
-		res.statusCode = 301;
-		res.setHeader('location', `https://${req.headers['host']}${req.url}`);
-		res.end();
-	}
-
-	// Handler: Stop the request early
-	#handleStopHttp(req, res)
-	{
-		req.destroy();
-	}
-
-	// Handler: Redirect unencrypted requests to WSS
-	#handleStopWs(req, socket)
-	{
-		socket.destroySoon();
-	}
-
-	// Handler: Error: Bad request
-	#handleBadRequest(req, res)
-	{
-		res.statusCode = 400;
-		res.end('Bad request');
-	}
-
-	// Handler: Error: Not found (simple)
-	#handleNotFoundApi(req, res)
-	{
-		res.statusCode = 404;
-		res.end('Not found');
-	}
-
-	// Handler: Error: Not found (page)
-	#handleNotFoundPage(req, res)
-	{
-		res.statusCode = 404;
-
-		// Plain message if there is no 404 page defined
-		if (!this.#notFound)
-			return res.end('Not found');
-
-		// Serve 404 page if it can be read, otherwise a plain 404
-		try {
-			res.end(fs.readFileSync(this.#notFound));
-		} catch (err) {
-			res.end('Not found');
-		}
-	}
-
+	///////////////
+	// Listening //
+	///////////////
 
 	// Listen to HTTP requests
 	async listen(options = {}) {
@@ -752,8 +800,15 @@ module.exports = class Server
 
 				// Not API or API prefixes not defined
 				if (isApi === false || this.#prefix === null) {
+					// If there's no file extension, then add index.html
+					let file;
+					if (this.#index && !/\.\w+/.test(req.url))
+						file = path.join(this.#dir, req.url, this.#index);
+					else
+						file = path.join(this.#dir, req.url);
+
 					// Response: Serve file
-					if (this.#serveFile(req, res))
+					if (this.#serveFile(req, res, file))
 						return;
 
 					// Response: Page not found
@@ -774,32 +829,8 @@ module.exports = class Server
 				return this.#handleNotFoundApi(req, res);
 
 			// Middleware: Developer-provided
-			if (this.#middleware.length) {
-				for (const group of this.#middleware) {
-					// Stop if a response was ended
-					if (res.finished)
-						break;
-
-					// If group is async
-					if (!group.sync) {
-						// Call all async functions together
-						const promises = [];
-						for (const mid of group.functions)
-							promises.push(mid(req, res));
-						await Promise.all(promises);
-					}
-					// If group is sync
-					else {
-						// Call each sync function
-						for (const mid of group.functions) {
-							mid(req, res);
-							// Stop if a response was ended
-							if (res.finished)
-								break;
-						}
-					}
-				}
-			}
+			if (this.#middlewareApi.length)
+				this.#midCall(req, res, this.#middlewareApi);
 
 			// Response: Developer-provided handler
 			handler(req, res);
@@ -876,5 +907,53 @@ module.exports = class Server
 
 		// Return the listening server
 		return server;
+	}
+
+	//////////////////////////////////////
+	// (Internal Helpers for Listening) //
+	//////////////////////////////////////
+
+	// Handler: Redirect unencrypted requests to HTTPS
+	#handleUnencryptedHttp(req, res)
+	{
+		res.statusCode = 301;
+		res.setHeader('location', `https://${req.headers['host']}${req.url}`);
+		res.end();
+	}
+
+	// Handler: Stop the request early
+	#handleStopHttp(req, res)
+	{
+		req.destroy();
+	}
+
+	// Handler: Redirect unencrypted requests to WSS
+	#handleStopWs(req, socket)
+	{
+		socket.destroySoon();
+	}
+
+	// Handler: Error: Bad request
+	#handleBadRequest(req, res)
+	{
+		res.statusCode = 400;
+		res.end('Bad request');
+	}
+
+	// Handler: Error: Not found (simple)
+	#handleNotFoundApi(req, res)
+	{
+		res.statusCode = 404;
+		res.end('Not found');
+	}
+
+	// Handler: Error: Not found (page)
+	#handleNotFoundPage(req, res)
+	{
+		res.statusCode = 404;
+
+		// Plain message if there is no 404 page defined/found
+		if (!this.#notFound || !this.#serveFile(req, res, this.#notFound))
+			return res.end('Not found');
 	}
 };
