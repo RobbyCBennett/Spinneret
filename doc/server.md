@@ -404,7 +404,7 @@ res.end();
 
 `Server.midFileResContentSecurityPolicy`
 
-* Tell front-end to disable inline CSS & JS and requests to other pages. This helps to prevent cross-site attacks, but other security measures should also be taken. See [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/Security/Types_of_attacks) to understand the various types of cross-site attacks, and [OWASP Cheat Sheet Series - XSS](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) and [OWASP Cheat Sheet Series - CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) for preventing them.
+* Tell front-end to disable `eval()`, inline CSS & JS, requests to other pages, etc. This helps to prevent cross-site attacks, but other security measures should also be taken. See [MDN Web Docs](https://developer.mozilla.org/en-US/docs/Web/Security/Types_of_attacks) to understand the various types of cross-site attacks, and [OWASP Cheat Sheet Series - XSS](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) and [OWASP Cheat Sheet Series - CSRF](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html) for preventing them.
 * Header: `Content-Security-Policy: default-src 'self'`
 
 `Server.midFileResContentType`
