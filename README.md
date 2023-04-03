@@ -78,12 +78,12 @@ const Server = require('./spinneret/src/server')
 				* Move JSON body to parsed `req.body` object with parsed values
 				* Move other body to `req.body` buffer
 			* Response
-				* Set default values for status code and content-type header
+				* Set default values for status code and Content-Type header
 				* Add useful functions to end the response for JSON, bad requests, not found, .etc
 		* Built-in Optional Middleware for File Serving
 			* Response
-				* Allow popular content-type bodies to be accepted properly (SVG)
-				* Make the content-security-policy strict to help prevent cross-site scripting attacks
+				* Allow popular Content-Type bodies to be accepted properly (SVG)
+				* Make the Content-Security-Policy strict to help prevent [cross-site scripting attacks](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)
 * WebSocket: Receive and send messages
 	* Event handling functions using the same terms as the Web API of frontend/browsers (close, error, message, and open)
 	* Automatically decode/encode messages

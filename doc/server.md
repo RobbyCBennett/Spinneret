@@ -404,7 +404,7 @@ res.end();
 
 `Server.midFileResContentSecurityPolicy`
 
-* Disable inline scripts to prevent cross-site scripting attacks. Both inline CSS and inline JS are disabled.
+* Tell front-end to disable inline CSS & JS and requests to other pages. This helps to prevent cross-site scripting attacks, but [other security measures](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html) should also be taken.
 * Header: `Content-Security-Policy: default-src 'self'`
 
 `Server.midFileResContentType`
