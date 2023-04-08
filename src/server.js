@@ -360,7 +360,8 @@ module.exports = class Server
 					// Serve content from cache
 					if (this.#middlewareFile.length)
 						await this.#midCall(req, res, this.#middlewareFile);
-					res.end(this.#cache.get(file));
+					if (!res.finished)
+						res.end(this.#cache.get(file));
 				}
 				// The file is not cached yet
 				else {
@@ -371,7 +372,8 @@ module.exports = class Server
 					// Serve content
 					if (this.#middlewareFile.length)
 						await this.#midCall(req, res, this.#middlewareFile);
-					res.end(content);
+					if (!res.finished)
+						res.end(content);
 				}
 			}
 			// Don't try to use the cache
@@ -380,7 +382,8 @@ module.exports = class Server
 				const content = fs.readFileSync(file);
 				if (this.#middlewareFile.length)
 					await this.#midCall(req, res, this.#middlewareFile);
-				res.end(content);
+				if (!res.finished)
+					res.end(content);
 			}
 			return true;
 		}
@@ -833,7 +836,8 @@ module.exports = class Server
 				await this.#midCall(req, res, this.#middlewareApi);
 
 			// Response: Developer-provided handler
-			handler(req, res);
+			if (!res.finished)
+				handler(req, res);
 		}
 
 		// Options to create the server or listen
