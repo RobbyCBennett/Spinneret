@@ -349,7 +349,7 @@ module.exports = class Server
 	////////////////////////////////////////
 
 	// If the path exists, then serve the file
-	#serveFile(req, res, file)
+	async #serveFile(req, res, file)
 	{
 		// Response: file content from cache/filesystem
 		try {
@@ -359,7 +359,7 @@ module.exports = class Server
 				if (this.#cache.has(file)) {
 					// Serve content from cache
 					if (this.#middlewareFile.length)
-						this.#midCall(req, res, this.#middlewareFile);
+						await this.#midCall(req, res, this.#middlewareFile);
 					res.end(this.#cache.get(file));
 				}
 				// The file is not cached yet
@@ -370,7 +370,7 @@ module.exports = class Server
 
 					// Serve content
 					if (this.#middlewareFile.length)
-						this.#midCall(req, res, this.#middlewareFile);
+						await this.#midCall(req, res, this.#middlewareFile);
 					res.end(content);
 				}
 			}
@@ -379,7 +379,7 @@ module.exports = class Server
 				// Get content from filesystem and serve it
 				const content = fs.readFileSync(file);
 				if (this.#middlewareFile.length)
-					this.#midCall(req, res, this.#middlewareFile);
+					await this.#midCall(req, res, this.#middlewareFile);
 				res.end(content);
 			}
 			return true;
@@ -808,12 +808,12 @@ module.exports = class Server
 						file = path.join(this.#dir, req.url);
 
 					// Response: Serve file
-					if (this.#serveFile(req, res, file))
+					if (await this.#serveFile(req, res, file))
 						return;
 
 					// Response: Page not found
 					if (isApi === false)
-						return this.#handleNotFoundPage(req, res);
+						return await this.#handleNotFoundPage(req, res);
 				}
 			}
 
@@ -830,7 +830,7 @@ module.exports = class Server
 
 			// Middleware: Developer-provided
 			if (this.#middlewareApi.length)
-				this.#midCall(req, res, this.#middlewareApi);
+				await this.#midCall(req, res, this.#middlewareApi);
 
 			// Response: Developer-provided handler
 			handler(req, res);
@@ -948,12 +948,12 @@ module.exports = class Server
 	}
 
 	// Handler: Error: Not found (page)
-	#handleNotFoundPage(req, res)
+	async #handleNotFoundPage(req, res)
 	{
 		res.statusCode = 404;
 
 		// Plain message if there is no 404 page defined/found
-		if (!this.#notFound || !this.#serveFile(req, res, this.#notFound))
+		if (!this.#notFound || !(await this.#serveFile(req, res, this.#notFound)))
 			return res.end('Not found');
 	}
 };
