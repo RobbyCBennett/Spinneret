@@ -76,6 +76,7 @@ const Server = require('./spinneret/src/server')
 			* Request
 				* Move URL variables in path to `req.vars` object with string values
 				* Move URL parameters after question mark ? to `req.params` object with string values
+				* Move cookies to `req.cookies` object with string values
 				* Move JSON body to parsed `req.body` object with string values
 				* Move other body to `req.body` buffer
 			* Response

@@ -11,9 +11,10 @@ url:     string
 ```
 Properties added by Spinneret
 ```ts
-body:   object || Buffer // object if JSON, otherwise Buffer
-vars:   object           // object of URL variables in the path
-params: object           // object of URL parameters after the question mark ?
+body:    object || Buffer // object if JSON, otherwise Buffer
+cookies: object           // object of cookies from the Cookie header
+params:  object           // object of URL parameters after the question mark ?
+vars:    object           // object of URL variables in the path
 ```
 
 ## `res`: ServerResponse
@@ -36,7 +37,7 @@ name:  string
 value: any
 ```
 
-Functions added by Spinneret middleware `server.midResEnd`
+Functions added by Spinneret middleware `server.midApiResEnd`
 ```ts
 endJson:          function(obj)
 endBadRequest:    function()

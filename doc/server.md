@@ -52,11 +52,12 @@ const env    = new Env();
 const server = new Server();
 
 server.midApiAsync(
-	server.midReqBodyJson,
-	server.midReqBodyOther,
-	server.midReqUrlParams,
-	server.midResDefaults,
-	server.midResEnd,
+	server.midApiReqBodyJson,
+	server.midApiReqBodyOther,
+	server.midApiReqCookies,
+	server.midApiReqUrlParams,
+	server.midApiResDefaults,
+	server.midApiResEnd,
 );
 
 const soups = [];
@@ -261,11 +262,12 @@ fn: function(req, res)
 ```js
 // All of the built-in API middleware, which all works asynchronously
 server.midApiAsync(
-	server.midReqBodyJson,
-	server.midReqBodyOther,
-	server.midReqUrlParams,
-	server.midResDefaults,
-	server.midResEnd,
+	server.midApiReqBodyJson,
+	server.midApiReqBodyOther,
+	server.midApiReqCookies,
+	server.midApiReqUrlParams,
+	server.midApiResDefaults,
+	server.midApiResEnd,
 );
 ```
 ```js
@@ -347,27 +349,31 @@ server.midFileSync(
 
 ## Middleware Functions Provided for API Requests
 
-`Server.midReqBodyJson`
+`Server.midApiReqBodyJson`
 
 * If the `content-type` of a request is `application/json`, then receive the request body in a Buffer using the fast method `Buffer.allocUnsafe` and parse as JSON.
-* It is not necessary to add the middleware `Server.midReqBodyOther` unless you want to receive the body of other content types.
+* It is not necessary to add the middleware `Server.midApiReqBodyOther` unless you want to receive the body of other content types.
 
-`Server.midReqBodyOther`
+`Server.midApiReqBodyOther`
 
 * Receive body in a Buffer using the fast method `Buffer.allocUnsafe`.
-* If you add `Server.midReqBodyJson`, then this function skips JSON bodies.
+* If you add `Server.midApiReqBodyJson`, then this function skips JSON bodies.
 
-`Server.midReqUrlParams`
+`Server.midApiReqCookies`
+
+* Parse the cookies from the Cookie header of a request. The object is accessed with `req.cookies` and the values are strings.
+
+`Server.midApiReqUrlParams`
 
 * Parse the URL parameters after the question mark ? of a request. The object is accessed with `req.params` and the values are strings.
 
-`Server.midResDefaults`
+`Server.midApiResDefaults`
 
 * Set the defaults of the following values of a response
 	* Status code: 201 if POST request, otherwise 200
 	* Header: `Content-Type: text/plain`
 
-`Server.midResEnd`
+`Server.midApiResEnd`
 
 * Add the following methods, which are as shortcuts for the code listed below each
 ```js
