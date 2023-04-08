@@ -28,12 +28,12 @@ module.exports = class Env
 	}
 
 	#parseFile(filename) {
-		// Parse file into lines or return with an error
+		// Parse file into lines or throw an error
 		let lines = [];
 		try {
 			lines = fs.readFileSync(filename).toString().split('\n');
 		} catch (err) {
-			console.error(`Spinneret Env: Error opening ${filename}`);
+			throw `Spinneret Env: Error opening ${filename}`;
 		}
 
 		// Parse lines
