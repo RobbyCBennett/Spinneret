@@ -150,20 +150,27 @@ module.exports = class Server
 		});
 	}
 
-	// API Middleware: Parse URL parameters
-	async midApiReqUrlParams(req, res)
+	// API Middleware: Create cookies object
+	async midApiReqCookies(req, res)
 	{
-		// Require the module to parse values
+		// Require the module to parse cookies
 		if (!parse)
 			parse = require('./parse');
 
+		// Parse the cookies
+		req.cookies = parse.cookieStringToObj(req.headers.cookie);
+	}
+
+	// API Middleware: Parse URL parameters
+	async midApiReqUrlParams(req, res)
+	{
 		// Parse the URL encoding
 		const urlSearchParams = new URLSearchParams(req.params);
 
 		// Parse and add each value
 		req.params = {};
 		for (const [key, value] of urlSearchParams)
-			req.params[key] = parse.stringToValue(value);
+			req.params[key] = value;
 	}
 
 	// API Middleware: Setup response
@@ -502,7 +509,7 @@ module.exports = class Server
 					// Add the variable to the request
 					if (!req.vars)
 						req.vars = {};
-					req.vars[varKey] = parse.stringToValue(urlPart);
+					req.vars[varKey] = urlPart;
 
 					// Change the URL part to the inner part of the delimiters
 					urlPart = varKey;
@@ -559,9 +566,6 @@ module.exports = class Server
 		// Wrong type
 		else
 			return null;
-
-		// Require the module to parse the values
-		parse = require('./parse');
 
 		return regExp;
 	}

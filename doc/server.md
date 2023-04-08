@@ -359,7 +359,7 @@ server.midFileSync(
 
 `Server.midReqUrlParams`
 
-* Parse the URL parameters after the question mark ? of a request. The object is accessed with `req.params` and the primitive types will be parsed already.
+* Parse the URL parameters after the question mark ? of a request. The object is accessed with `req.params` and the values are strings.
 
 `Server.midResDefaults`
 

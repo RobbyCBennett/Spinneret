@@ -1,5 +1,28 @@
 # Module: `./spinneret/src/parse`
 
+## Function: `cookieStringToObj`
+
+Given a cookie string/undefined and an existing object, parse the string.
+
+`cookieStringToObj` parameters
+```ts
+cookieStringToObj(str)
+
+str: string
+```
+
+`cookieStringToObj` full example
+```js
+const parse = require('./spinneret/src/parse');
+
+parse.cookieStringToObj('key_a=value; key_b="longer \\" ; value"');
+// object: {
+//		key_a: 'value',
+// 		key_b: 'longer \\" ; value'
+// }
+}
+```
+
 ## Function: `stringToValue`
 
 Parse any string into a boolean, number, or string.

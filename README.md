@@ -51,6 +51,7 @@ const Server = require('./spinneret/src/server')
 		* Property: Message from a client ready as a Buffer
 
 ### [Parse](doc/parse.md)
+* Parse a cookie string into an object
 * Parse any string into a boolean, number, or string
 
 ### [Server](doc/server.md)
@@ -73,9 +74,9 @@ const Server = require('./spinneret/src/server')
 				* Move URL ?parameters to `req.params` string
 		* Built-in Optional Middleware for API Handling
 			* Request
-				* Move URL variables in path to `req.vars` object with parsed values
-				* Move URL parameters after question mark ? to `req.params` object with parsed values
-				* Move JSON body to parsed `req.body` object with parsed values
+				* Move URL variables in path to `req.vars` object with string values
+				* Move URL parameters after question mark ? to `req.params` object with string values
+				* Move JSON body to parsed `req.body` object with string values
 				* Move other body to `req.body` buffer
 			* Response
 				* Set default values for status code and Content-Type header
