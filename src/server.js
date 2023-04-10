@@ -1,17 +1,24 @@
 'use strict';
 
 
-// Modules: node
+// Modules: Node.js
 const fs = require('node:fs');
 let crypto, path;
 
-// Modules: internal
+// Modules: Internal
 let parse;
 
 
-// Constants
+// Constants: WebSocket
 const WS_GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11';
 
+// Constants: HTTP
+const CUSTOM_OPTIONS_OTHER  = new Set(['https', 'types']);
+const CUSTOM_OPTIONS_FILES  = new Set(['caFile', 'certFile', 'crlFile', 'keyFile', 'pfxFile']);
+const CUSTOM_OPTIONS_LIMITS = new Set([
+	'headersTimeout', 'keepAliveTimeout', 'maxBodySize',
+	'maxHeadersCount', 'maxRequestsPerSocket', 'requestTimeout', 'timeout'
+]);
 
 module.exports = class Server
 {
@@ -64,6 +71,7 @@ module.exports = class Server
 		this.#ws = false;
 
 		// Public methods which use this server object
+		this.midApiReqBodyJson  = this.midApiReqBodyJson.bind(this);
 		this.midApiReqBodyOther = this.midApiReqBodyOther.bind(this);
 	}
 
@@ -107,10 +115,15 @@ module.exports = class Server
 			return;
 
 		// Get data
+		const maxBodySize = req.socket.server.maxBodySize;
+		let bytes = 0;
 		const body = [];
 		req.on('data', (buffer) => {
+			if (maxBodySize !== undefined && bytes + buffer.length > maxBodySize)
+				return this.#handleStopHttp(req, res);
 			body.push(buffer.toString());
-		})
+			bytes += buffer.length;
+		});
 
 		// Parse and store in request
 		return new Promise((resolve, reject) => {
@@ -137,10 +150,12 @@ module.exports = class Server
 		req.body = Buffer.allocUnsafe(isNaN(length) ? 0 : length);
 
 		// Gradually grow the body buffer
-		let pos = 0;
+		let bytes = 0;
 		req.on('data', buffer => {
-			pos += buffer.copy(req.body, pos);
-		})
+			if (maxBodySize !== undefined && bytes + buffer.length > maxBodySize)
+				return this.#handleStopHttp(req, res);
+			bytes += buffer.copy(req.body, bytes);
+		});
 
 		// Parse and store in request
 		return new Promise(resolve => {
@@ -785,6 +800,13 @@ module.exports = class Server
 			if (req.headers['content-type'] && !allTypes.has(req.headers['content-type']))
 				return this.#handleStopHttp(req, res);
 
+			// Response: Content length might be too large
+			if (options.maxBodySize !== undefined && req.headers['content-length']) {
+				const apparentSize = parseInt(req.headers['content-length']);
+				if (!isNaN(apparentSize) && apparentSize > options.maxBodySize)
+					return this.#handleStopHttp(req, res);
+			}
+
 			// Response: Encryption required
 			if (!req.connection.encrypted && options.onlyHttps)
 				return this.#handleUnencryptedHttp(req, res);
@@ -847,19 +869,13 @@ module.exports = class Server
 		// Options to create the server or listen
 		const createOptions = {};
 		const listenOptions = {};
-		const customKeys = ['https', 'types'];
-		const fileKeys = ['caFile', 'certFile', 'crlFile', 'keyFile', 'pfxFile'];
-		const limitKeys = [
-			'headersTimeout', 'keepAliveTimeout', 'maxHeadersCount',
-			'maxRequestsPerSocket', 'requestTimeout', 'timeout'
-		];
 		for (const [key, value] of Object.entries(options)) {
 			// Skip keys added by this class
-			if (customKeys.includes(key) || limitKeys.includes(key)) {
+			if (CUSTOM_OPTIONS_OTHER.has(key) || CUSTOM_OPTIONS_LIMITS.has(key)) {
 				continue;
 			}
 			// Read file for keys which usually read file contents, crash if failed
-			else if (fileKeys.includes(key)) {
+			else if (CUSTOM_OPTIONS_FILES.has(key)) {
 				const keyWithoutFile = key.slice(0, -4);
 				createOptions[keyWithoutFile] = fs.readFileSync(options[key]);
 			}
@@ -875,7 +891,7 @@ module.exports = class Server
 		const server = module.createServer(createOptions, listener);
 
 		// Set limits
-		for (const key of limitKeys)
+		for (const key of CUSTOM_OPTIONS_LIMITS)
 			if (options[key] !== undefined)
 				server[key] = options[key];
 

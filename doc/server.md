@@ -192,7 +192,7 @@ server.listen(options = {
 })
 ```
 
-Options from Spinneret which are built-in properties
+Options from Spinneret which are built-in properties of Server
 ```ts
 headersTimeout:       number // https://nodejs.org/api/http.html#serverheaderstimeout
 keepAliveTimeout:     number // https://nodejs.org/api/http.html#serverkeepalivetimeout
@@ -204,15 +204,16 @@ timeout:              number // https://nodejs.org/api/http.html#servertimeout
 
 Other options From Spinneret
 ```ts
-caFile:    string,       // Name of file for ca option
-certFile:  string,       // Name of file for cert option
-crlFile:   string,       // Name of file for crl option
-https:     boolean,      // Enable HTTPS
-keyFile:   string,       // Name of file for key option
-onlyHttps: boolean,      // Redirect HTTP to HTTPS
-onlyWss:   boolean,      // Stop unencrypted WS connections
-pfxFile:   string,       // Name of file for pfx option
-types:     string array, // Array of allowed incoming content-type values
+caFile:      string,       // Name of file for ca option
+certFile:    string,       // Name of file for cert option
+crlFile:     string,       // Name of file for crl option
+https:       boolean,      // Enable HTTPS
+keyFile:     string,       // Name of file for key option
+maxBodySize: number,       // Max number of bytes for the body
+onlyHttps:   boolean,      // Redirect HTTP to HTTPS
+onlyWss:     boolean,      // Stop unencrypted WS connections
+pfxFile:     string,       // Name of file for pfx option
+types:       string array, // Array of allowed incoming content-type values
 ```
 
 Full documentation of built-in options
