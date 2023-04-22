@@ -32,6 +32,7 @@ module.exports = class Server
 	// File serving
 	#dir;
 	#index;
+	#indexAbsolute;
 	#notFound;
 	#cache;
 	#cacheEnabled;
@@ -62,6 +63,7 @@ module.exports = class Server
 		// File serving
 		this.#cache        = new Map();
 		this.#cacheEnabled = false;
+		this.#indexAbsolute = false;
 
 		// Middleware
 		this.#middlewareApi  = [];
@@ -343,6 +345,8 @@ module.exports = class Server
 		this.#cacheEnabled = cache;
 		this.#dir = dir;
 		this.#index = index || null;
+		if (this.#index && this.#index[0] === '/')
+			this.#indexAbsolute = true;
 		this.#notFound = (typeof(notFound) === 'string') ? path.join(dir, notFound) : null;
 	}
 
@@ -839,12 +843,18 @@ module.exports = class Server
 
 				// Not API or API prefixes not defined
 				if (isApi === false || this.#prefix === null) {
+
 					// If there's no file extension, then add index.html
 					let file;
-					if (this.#index && !/\.\w+/.test(req.url))
-						file = path.join(this.#dir, req.url, this.#index);
-					else
+					if (this.#index && !/\.\w+/.test(req.url)) {
+						if (this.#indexAbsolute)
+							file = path.join(this.#dir, this.#index);
+						else
+							file = path.join(this.#dir, req.url, this.#index);
+					}
+					else {
 						file = path.join(this.#dir, req.url);
+					}
 
 					// Response: Serve file
 					if (await this.#serveFile(req, res, file))
