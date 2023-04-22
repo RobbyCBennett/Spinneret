@@ -193,7 +193,7 @@ module.exports = class Server
 	{
 		// Default content type & status code
 		res.statusCode = (req.method == 'POST') ? 201 : 200;
-		res.setHeader('content-type', 'text/plain');
+		res.setHeader('Content-Type', 'text/plain');
 	}
 
 	// API Middleware: Add end functions for response
@@ -228,16 +228,26 @@ module.exports = class Server
 	// Allow popular content-type bodies to be accepted properly
 	async midFileResContentType(req, res)
 	{
-		// Allow SVG files to render on front-end
-		if (/\.svg$/.test(req.url))
-			res.setHeader('content-type', 'image/svg+xml');
+		let type;
+		switch (path.extname(req.url)) {
+			case '.js':
+				type = 'text/javascript';
+				break;
+			case '.svg':
+				type = 'image/svg+xml';
+				break;
+			default:
+				return;
+		}
+
+		res.setHeader('Content-Type', type);
 	}
 
 	// Set the content-security-policy to be strict by default
 	async midFileResContentSecurityPolicy(req, res)
 	{
 		// Disable inline scripts to help prevent cross-site scripting attacks
-		res.setHeader('content-security-policy', "default-src 'self';");
+		res.setHeader('Content-Security-Policy', "default-src 'self';");
 	}
 
 	///////////////////////////////////////
@@ -941,7 +951,7 @@ module.exports = class Server
 	#handleUnencryptedHttp(req, res)
 	{
 		res.statusCode = 301;
-		res.setHeader('location', `https://${req.headers['host']}${req.url}`);
+		res.setHeader('Location', `https://${req.headers['host']}${req.url}`);
 		res.end();
 	}
 

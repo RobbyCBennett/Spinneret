@@ -417,6 +417,7 @@ res.end();
 `Server.midFileResContentType`
 
 * Set the content-type for popular files so that they render properly.
+* Header for JS files: `Content-Type: text/javascript`
 * Header for SVG files: `Content-Type: image/svg+xml`
 
 
