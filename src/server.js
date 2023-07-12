@@ -202,6 +202,7 @@ module.exports = class Server
 	async midApiResEnd(req, res)
 	{
 		res.endJson = function(obj) {
+			this.setHeader('Content-Type', 'application/json');
 			this.end(JSON.stringify(obj));
 		}
 
