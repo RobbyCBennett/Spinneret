@@ -798,7 +798,7 @@ module.exports = class Server
 		if (options.https === undefined)
 			options.https = false;
 		if (options.host === undefined)
-			options.host = 'localhost';
+			options.host = '::';
 		if (options.port === undefined)
 			options.port = options.https ? 443 : 80;
 		if (options.types === undefined)

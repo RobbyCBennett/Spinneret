@@ -186,7 +186,7 @@ Call after giving the server API request handlers, WebSocket handlers, or files 
 ```ts
 server.listen(options = {
 	https: false,
-	host:  'localhost',
+	host:  '::', // This works well no matter if the server/client is IPv4/IPv6
 	port:  options.https ? 443 : 80,
 	types: [],
 })
