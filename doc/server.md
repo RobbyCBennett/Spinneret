@@ -90,6 +90,14 @@ server.listen({
 });
 ```
 
+`delete` parameters
+```ts
+server.delete(path, fn)
+
+path: string
+fn:   function(req, res)
+```
+
 `get` parameters
 ```ts
 server.get(path, fn)
@@ -146,9 +154,7 @@ const Server = require('./spinneret/src/server');
 
 const server = new Server();
 
-server.enableCache();
-
-// Optional
+// Optional middleware
 server.midFileAsync(
 	server.midFileResContentSecurityPolicy,
 	server.midFileResContentType,
@@ -160,9 +166,6 @@ server.files({
 	index:    'index.html',
 	notFound: '404.html',
 });
-
-// Optional
-server.enableCache();
 
 server.listen({
 	port: 8080,
@@ -376,7 +379,7 @@ server.midFileSync(
 
 `Server.midApiResEnd`
 
-* Add the following methods, which are as shortcuts for the code listed below each
+* Add the following methods, which are shortcuts for the code listed below each
 ```js
 res.endJson(obj);
 
@@ -424,7 +427,7 @@ res.end();
 ## WebSocket Event Handlers
 [Event handler `soc` parameter](node.md)
 
-For a given event string, create respond using a handler
+For a given [WebSocket event](https://developer.mozilla.org/en-US/docs/Web/API/WebSocket#events) string, the given event handler function is set up.
 
 `ws` parameters
 ```ts

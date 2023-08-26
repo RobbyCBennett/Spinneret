@@ -54,7 +54,17 @@ obj: object
 ## `soc`:  Socket
 [Full documentation](https://nodejs.org/api/net.html#class-netsocket) for `node.net.Socket`
 
-The WebSocket of the client. The `message` property is a full message as a Buffer. As opposed to an HTTP body, the type is unknown, so you must manually call JSON.parse on the message if it is JSON.
+The WebSocket of the client.
+
+Receiving messages:
+
+The `message` property is a full message as a Buffer. As opposed to an HTTP body, the type is unknown, so you must manually call JSON.parse on the message if it is JSON.
+
+Sending messages:
+
+The `send` function is for sending data to one socket. Simply call `send` with just the data if the message is unique.
+
+The `encode` function is for preparing data that will be sent to several sockets. Call `encode` once, then for each socket call `send`.
 
 Functions added by Spinneret
 ```ts
