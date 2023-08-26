@@ -62,9 +62,9 @@ module.exports = {
 	stringToValue: function(str) {
 		// Boolean
 		const lower = str.toLowerCase();
-		if (lower == 'false')
+		if (lower === 'false')
 			return false;
-		if (lower == 'true')
+		if (lower === 'true')
 			return true;
 
 		// Number

@@ -113,7 +113,7 @@ module.exports = class Server
 	async midApiReqBodyJson(req, res)
 	{
 		// Skip if content type is not this type
-		if (req.headers['content-type'] != 'application/json')
+		if (req.headers['content-type'] !== 'application/json')
 			return;
 
 		// Get data
@@ -194,7 +194,7 @@ module.exports = class Server
 	async midApiResDefaults(req, res)
 	{
 		// Default content type & status code
-		res.statusCode = (req.method == 'POST') ? 201 : 200;
+		res.statusCode = (req.method === 'POST') ? 201 : 200;
 		res.setHeader('Content-Type', 'text/plain');
 	}
 
@@ -336,7 +336,7 @@ module.exports = class Server
 			dir = path.join(process.cwd(), dir);
 
 		// Error if serving this directory
-		if (dir == process.cwd())
+		if (dir === process.cwd())
 			throw(`Attempted to serve files here in "${dir}"`);
 
 		// Error if serving above this directory
@@ -652,7 +652,7 @@ module.exports = class Server
 		// Metadata: Use bytes 1-2 or bytes 1-3 to see where to start
 		let currentOffset = 2;
 		let payloadLength = byte1 & 0x7f;
-		if (payloadLength == 126) {
+		if (payloadLength === 126) {
 			payloadLength = buffer.readUInt16BE(currentOffset);
 			currentOffset += 2;
 		}
@@ -834,7 +834,7 @@ module.exports = class Server
 			}
 
 			// Remove trailing slash
-			if (req.url.length > 1 && req.url[req.url.length-1] == '/')
+			if (req.url.length > 1 && req.url[req.url.length-1] === '/')
 				req.url = req.url.substr(0, req.url.length-1);
 
 			// If serving files
@@ -938,16 +938,17 @@ module.exports = class Server
 		// Print status
 		console.log();
 		const protocol = options.https ? 'https://' : 'http://';
+		const host = (options.host === '::' || options.host === '127.0.0.1') ? 'localhost' : options.host;
 		let port;
 		if (options.https)
-			port = (options.port == 443) ? '' : `:${options.port}`;
+			port = (options.port === 443) ? '' : `:${options.port}`;
 		else
-			port = (options.port == 80) ? '' : `:${options.port}`;
-		console.log(`${protocol}${options.host}${port}`);
+			port = (options.port === 80) ? '' : `:${options.port}`;
+		console.log(`${protocol}${host}${port}`);
 		if (this.#ws) {
 			if (options.onlyWss !== true)
-				console.log(`ws://${options.host}${port}`);
-			console.log(`wss://${options.host}${port}`);
+				console.log(`ws://${host}${port}`);
+			console.log(`wss://${host}${port}`);
 		}
 
 		// Return the listening server
