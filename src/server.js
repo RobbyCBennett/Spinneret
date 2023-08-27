@@ -637,17 +637,17 @@ module.exports = class Server
 		const byte0 = buffer.readUInt8(0);
 		const opCode = byte0 & 0xf;
 
-		// Return if the buffer is not a text frame
+		// Fail if the buffer is not a text frame
 		if (opCode !== 0x1)
-			return;
+			return false;
 
 		// Metadata: Use byte 1 to see if data is masked
 		const byte1 = buffer.readUInt8(1);
 		const isMasked = Boolean((byte1 >>> 7) & 0x1);
 
-		// Return if buffer is not masked
+		// Fail if buffer is not masked
 		if (!isMasked)
-			return;
+			return false;
 
 		// Metadata: Use bytes 1-2 or bytes 1-3 to see where to start
 		let currentOffset = 2;
@@ -657,9 +657,9 @@ module.exports = class Server
 			currentOffset += 2;
 		}
 
-		//  Return if payload is too large
+		// Fail if the payload is too large
 		else if (payloadLength >= 127)
-			return;
+			return false;
 
 		// Metadata: Use the next 4 bytes to get the XOR masking key
 		const maskingKey = buffer.readUInt32BE(currentOffset);
@@ -688,6 +688,9 @@ module.exports = class Server
 			socket.message.writeUInt8(mask ^ source, byteI);
 			currentOffset += 1;
 		}
+
+		// Success
+		return true;
 	}
 
 	// Encode a string to send
@@ -753,7 +756,7 @@ module.exports = class Server
 
 		// Event handler: WebSocket.close
 		if (this.#wsOnClose)
-			socket.on('close', (hadError) => {
+			socket.on('end', (hadError) => {
 				socket.error    = null;
 				socket.hadError = hadError;
 				socket.message  = null;
@@ -775,15 +778,15 @@ module.exports = class Server
 				socket.error    = null;
 				socket.hadError = null;
 				socket.message  = null;
-				this.#decodeWsMessage(socket, buffer);
-				this.#wsOnMessage(socket);
+				if (this.#decodeWsMessage(socket, buffer))
+					this.#wsOnMessage(socket);
 			});
 
 		// Event handler: WebSocket.open
 		if (this.#wsOnOpen) {
-				socket.error    = null;
-				socket.hadError = null;
-				socket.message  = null;
+			socket.error    = null;
+			socket.hadError = null;
+			socket.message  = null;
 			this.#wsOnOpen(socket);
 		}
 	}
